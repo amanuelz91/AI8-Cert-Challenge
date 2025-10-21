@@ -1,0 +1,50 @@
+Task #1
+1. Write a succinct 1-sentence description of the problem
+A: It’s difficult to get clear, accurate answers to questions about student loans and repayment—whether you’re a current or prospective borrower, or even a customer service agent working at a federal student loan organization like MOHELA or Federal Student Aid.
+2. Write 1-2 paragraphs on why this is a problem for your specific user
+A: The lack of clear, consistent, and accessible information about student loans is a major problem for millions of Americans navigating repayment. As payments resume and policy changes continue to shift, borrowers are turning to servicers like MOHELA and Federal Student Aid for guidance—yet even customer service agents within these organizations struggle to provide accurate answers due to outdated systems, fragmented data, and constantly evolving regulations. This confusion not only leads to long call wait times and miscommunication but also deepens financial anxiety and mistrust among borrowers. With $1.777 trillion in total student loan debt as of Q1 2025—$1.693 trillion of which is federal—this issue affects roughly 42.7 million people in the U.S., and call volume is expected to surge throughout 2025 as more borrowers seek help understanding repayment options, forgiveness programs, and interest accrual.
+3. Success: 
+A: 🧪 Hypothesis: Current tools for searching, retrieving, and generating helpful responses do not meaningfully increase an agent’s efficiency or capacity to handle high volumes of customer complaints each day.
+4. Audience:
+A: We are building this application for customer service agents who work within federal student loan organizations, such as MOHELA or Federal Student Aid. These agents handle thousands of inquiries daily from borrowers seeking clarity on repayment options, forgiveness programs, and policy changes. Our goal is to empower them with faster, more accurate tools for retrieving and generating information—reducing time spent searching through fragmented databases and enabling them to provide clear, confident answers to borrowers in need.
+
+Task 2: Propose a Solution
+
+1. Write 1-2 paragraphs on your proposed solution.  How will it look and feel to the user?
+2. Describe the tools you plan to use in each part of your stack.  Write one sentence on why you made each tooling choice.
+    1. LLM
+    2. Embedding Model
+    3. Orchestration
+    4. Vector Database
+    5. Monitoring
+    6. Evaluation
+    7. User Interface
+    8. (Optional) Serving & Inference
+3. Where will you use an agent or agents?  What will you use “agentic reasoning” for in your app?
+
+We want to build a system that can intelligently answer real-world questions like these:
+
+| **User Type**                        | **Scenario / Example Question**                                                                                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Current borrowers (in repayment)** | A borrower says they’ve fallen three months behind on payments and can’t afford to catch up. What’s the most effective course of action?        |
+| **Current borrowers (in repayment)** | A borrower insists they already submitted their Income-Driven Repayment (IDR) renewal form, but no record exists. How should the agent proceed? |
+| **Current borrowers (in repayment)** | A borrower argues, “I shouldn’t have to repay these loans — this is unconstitutional.” How can the agent respond professionally and accurately? |
+| **Prospective borrowers**            | Is taking out a federal student loan in 2025 a financially smart decision?                                                                      |
+| **Prospective borrowers**            | How much can a student currently borrow from the government to attend college? Is there a maximum limit?                                        |
+| **Prospective borrowers**            | What grants and scholarships are available that don’t need to be repaid?                                                                        |
+
+
+
+Task 3: Dealing with the Data
+
+1. Describe all of your data sources and external APIs, and describe what you’ll use them for.
+2. Describe the default chunking strategy that you will use.  Why did you make this decision?
+3. [Optional] Will you need specific data for any other part of your application?   If so, explain.
+
+
+**For our initial RAG prototype**, we’ll use a curated selection of **official policy documents** from the [Federal Student Aid Handbook (2025–2026)](https://fsapartners.ed.gov/knowledge-center/fsa-handbook/pdf/2025-2026). These resources provide the foundational rules and procedures that govern federal student aid programs:
+
+* [**Application and Verification Guide**](https://fsapartners.ed.gov/sites/default/files/2025-2026/2025-2026_Federal_Student_Aid_Handbook/_knowledge-center_fsa-handbook_2025-2026_application-and-verification-guide.pdf) — covers application processes, data verification, and eligibility documentation.
+* [**Volume 3: Academic Calendars, Cost of Attendance, and Packaging**](https://fsapartners.ed.gov/sites/default/files/2025-2026/2025-2026_Federal_Student_Aid_Handbook/_knowledge-center_fsa-handbook_2025-2026_vol3.pdf) — defines institutional calendars, cost calculations, and aid packaging standards.
+* [**Volume 7: The Federal Pell Grant Program**](https://fsapartners.ed.gov/sites/default/files/2025-2026/2025-2026_Federal_Student_Aid_Handbook/_knowledge-center_fsa-handbook_2025-2026_vol7.pdf) — outlines rules, calculations, and disbursement procedures for Pell Grants.
+* [**Volume 8: The Direct Loan Program**](https://fsapartners.ed.gov/sites/default/files/2025-2026/2025-2026_Federal_Student_Aid_Handbook/_knowledge-center_fsa-handbook_2025-2026_vol8.pdf) — details policies and requirements for federal Direct Loans, including repayment and servicing.

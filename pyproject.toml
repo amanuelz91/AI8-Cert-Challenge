@@ -1,0 +1,109 @@
+[project]
+name = "rag-system"
+version = "1.0.0"
+description = "Production-grade RAG system with multiple retrieval strategies"
+authors = [
+    {name = "AI Makerspace", email = "contact@aimakerspace.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    # Core LangChain packages
+    "langchain>=0.1.0",
+    "langchain-core>=0.1.0",
+    "langchain-community>=0.0.20",
+    "langchain-openai>=0.0.5",
+    "langchain-experimental>=0.0.50",
+    "langgraph>=0.0.20",
+    # Vector store and embeddings
+    "qdrant-client>=1.7.0",
+    "langchain-qdrant>=0.0.1",
+    # Text processing and chunking
+    "langchain-text-splitters>=0.0.1",
+    # Search and reranking
+    "langchain-cohere>=0.0.1",
+    "cohere>=4.0.0",
+    # Configuration and utilities
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "tqdm>=4.65.0",
+    # Logging and monitoring
+    "structlog>=23.0.0",
+    # API framework
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "requests>=2.31.0",
+    # Optional: Tavily for web search
+    "tavily-python>=0.3.0",
+    # Optional: RAGAS for evaluation
+    "ragas>=0.1.0",
+    "langsmith>=0.0.50",
+    "pymupdf>=1.26.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
