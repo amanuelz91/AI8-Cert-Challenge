@@ -65,4 +65,27 @@ def setup_logging(
 
 def get_logger(name: str) -> logging.Logger:
     """Get a logger instance for a module."""
-    return logging.getLogger(name)
+    logger = logging.getLogger(name)
+    
+    # Set up basic configuration if no handlers exist
+    if not logger.handlers:
+        config = get_config()
+        
+        # Set level
+        logger.setLevel(getattr(logging, config.logging.level.upper()))
+        
+        # Create formatter
+        formatter = logging.Formatter(
+            fmt=config.logging.format,
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        
+        # Console handler
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
+        
+        # Prevent propagation to root logger
+        logger.propagate = False
+    
+    return logger

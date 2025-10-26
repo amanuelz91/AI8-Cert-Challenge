@@ -122,11 +122,34 @@ class ProductionRAGSystem:
             # Initialize vector store
             self._initialize_vector_store()
             
-            # Initialize retrievers
-            self._initialize_retrievers()
+            # Create retrievers inline (not stored as attributes)
+            # These are only used to build chains
+            naive_retriever = create_naive_retriever(
+                self.vector_store,
+                k=self.config.retrieval.default_k,
+                similarity_threshold=self.config.retrieval.similarity_threshold
+            )
             
-            # Initialize chains and workflows
-            self._initialize_chains_and_workflows()
+            semantic_retriever = create_semantic_retriever(
+                self.vector_store,
+                self.embeddings,
+                k=self.config.retrieval.default_k,
+                similarity_threshold=self.config.retrieval.similarity_threshold
+            )
+            
+            if self.search_tool:
+                tool_retriever = create_tool_based_retriever(
+                    self.search_tool,
+                    k=self.config.retrieval.default_k
+                )
+            else:
+                logger.warning("⚠️ No search tool provided, tool-based retrieval disabled")
+                tool_retriever = None
+            
+            logger.info("✅ Retrievers created for chains")
+            
+            # Initialize chains and workflows using the retrievers
+            self._initialize_chains_and_workflows(naive_retriever, semantic_retriever, tool_retriever)
             
             logger.info("✅ All components initialized successfully")
             
@@ -187,57 +210,27 @@ class ProductionRAGSystem:
             logger.error(error_msg)
             raise RAGException(error_msg) from e
     
-    def _initialize_retrievers(self) -> None:
-        """Initialize retrieval components."""
-        try:
-            logger.info("🔍 Initializing retrievers")
-            
-            # Initialize production retrievers
-            self.naive_retriever = create_naive_retriever(
-                self.vector_store,
-                k=self.config.retrieval.default_k,
-                similarity_threshold=self.config.retrieval.similarity_threshold
-            )
-            
-            self.semantic_retriever = create_semantic_retriever(
-                self.vector_store,
-                self.embeddings,
-                k=self.config.retrieval.default_k,
-                similarity_threshold=self.config.retrieval.similarity_threshold
-            )
-            
-            if self.search_tool:
-                self.tool_retriever = create_tool_based_retriever(
-                    self.search_tool,
-                    k=self.config.retrieval.default_k
-                )
-            else:
-                logger.warning("⚠️ No search tool provided, tool-based retrieval disabled")
-                self.tool_retriever = None
-            
-            logger.info("✅ Retrievers initialized successfully")
-            
-        except Exception as e:
-            error_msg = f"Failed to initialize retrievers: {str(e)}"
-            logger.error(error_msg)
-            raise RAGException(error_msg) from e
-    
-    def _initialize_chains_and_workflows(self) -> None:
+    def _initialize_chains_and_workflows(
+        self,
+        naive_retriever,
+        semantic_retriever,
+        tool_retriever
+    ) -> None:
         """Initialize LCEL chains and LangGraph workflows."""
         try:
             logger.info("🔗 Initializing chains and workflows")
             
             # Initialize chains
             logger.info(f"🔍 Creating chains with retrievers:")
-            logger.info(f"  - naive_retriever: {type(self.naive_retriever)}")
-            logger.info(f"  - semantic_retriever: {type(self.semantic_retriever)}")
-            logger.info(f"  - tool_retriever: {type(self.tool_retriever)}")
+            logger.info(f"  - naive_retriever: {type(naive_retriever)}")
+            logger.info(f"  - semantic_retriever: {type(semantic_retriever)}")
+            logger.info(f"  - tool_retriever: {type(tool_retriever)}")
             logger.info(f"  - llm: {type(self.llm)}")
             
             self.chains = create_production_chains(
-                self.naive_retriever,
-                self.semantic_retriever,
-                self.tool_retriever,
+                naive_retriever,
+                semantic_retriever,
+                tool_retriever,
                 self.llm
             )
             
@@ -249,9 +242,9 @@ class ProductionRAGSystem:
             # Initialize workflows
             logger.info(f"🔄 Creating workflows with retrievers:")
             self.workflows = create_production_workflows(
-                self.naive_retriever,
-                self.semantic_retriever,
-                self.tool_retriever,
+                naive_retriever,
+                semantic_retriever,
+                tool_retriever,
                 self.llm
             )
             
@@ -290,49 +283,106 @@ class ProductionRAGSystem:
             RAGException: If query fails
         """
         try:
-            logger.info(f"❓ Processing query: {question[:50]}...")
-            logger.info(f"🔍 Available chains: {list(self.chains.keys())}")
-            logger.info(f"🔍 Available workflows: {list(self.workflows.keys())}")
+            logger.info(f"🚀 [RAG QUERY] ==========================================")
+            logger.info(f"🚀 [RAG QUERY] Starting RAG query processing")
+            logger.info(f"🚀 [RAG QUERY] Question: '{question}'")
+            logger.info(f"🚀 [RAG QUERY] Method: {method}")
+            logger.info(f"🚀 [RAG QUERY] Include confidence: {include_confidence}")
+            logger.info(f"🚀 [RAG QUERY] ==========================================")
+            
+            # Log system state
+            logger.info(f"🔍 [RAG QUERY] System state:")
+            logger.info(f"  📚 Available chains: {list(self.chains.keys())}")
+            logger.info(f"  🔄 Available workflows: {list(self.workflows.keys())}")
+            logger.info(f"  🤖 LLM: {type(self.llm)}")
             
             # Prepare input
             input_data = {"question": question}
-            logger.info(f"📝 Input data: {input_data}")
+            logger.info(f"📝 [RAG QUERY] Input data prepared: {input_data}")
             
             # Execute based on method
-            if method == "naive":
-                logger.info(f"🔗 Using naive chain: {type(self.chains['naive_rag'])}")
-                logger.info(f"🔗 Chain has invoke method: {hasattr(self.chains['naive_rag'], 'invoke')}")
-                result = self.chains["naive_rag"].invoke(input_data)
-            elif method == "semantic":
-                logger.info(f"🔗 Using semantic chain: {type(self.chains['semantic_rag'])}")
-                logger.info(f"🔗 Chain has invoke method: {hasattr(self.chains['semantic_rag'], 'invoke')}")
-                result = self.chains["semantic_rag"].invoke(input_data)
-            elif method == "tool" and self.tool_retriever:
-                logger.info(f"🔗 Using tool chain: {type(self.chains['tool_search'])}")
-                logger.info(f"🔗 Chain has invoke method: {hasattr(self.chains['tool_search'], 'invoke')}")
-                result = self.chains["tool_search"].invoke(input_data)
-            elif method == "hybrid" and self.tool_retriever:
-                logger.info(f"🔗 Using hybrid chain: {type(self.chains['hybrid_rag'])}")
-                logger.info(f"🔗 Chain has invoke method: {hasattr(self.chains['hybrid_rag'], 'invoke')}")
-                result = self.chains["hybrid_rag"].invoke(input_data)
-            elif method == "production":
-                logger.info(f"🔄 Using production workflow: {type(self.workflows['production_rag'])}")
-                logger.info(f"🔄 Workflow has invoke method: {hasattr(self.workflows['production_rag'], 'invoke')}")
-                result = self.workflows["production_rag"].invoke(input_data)
-            else:
-                raise ValueError(f"Invalid method: {method}")
+            logger.info(f"⚡ [RAG QUERY] Executing query using method: {method}")
             
-            logger.info(f"✅ Chain/workflow execution completed, result type: {type(result)}")
+            if method == "naive":
+                logger.info(f"🔗 [RAG QUERY] Using NAIVE chain")
+                logger.info(f"🔗 [RAG QUERY] Chain type: {type(self.chains['naive_rag'])}")
+                logger.info(f"🔗 [RAG QUERY] Chain has invoke method: {hasattr(self.chains['naive_rag'], 'invoke')}")
+                logger.info(f"🔗 [RAG QUERY] Invoking naive_rag chain...")
+                result = self.chains["naive_rag"].invoke(input_data)
+                logger.info(f"✅ [RAG QUERY] Naive chain execution completed")
+                
+            elif method == "semantic":
+                logger.info(f"🔗 [RAG QUERY] Using SEMANTIC chain")
+                logger.info(f"🔗 [RAG QUERY] Chain type: {type(self.chains['semantic_rag'])}")
+                logger.info(f"🔗 [RAG QUERY] Chain has invoke method: {hasattr(self.chains['semantic_rag'], 'invoke')}")
+                logger.info(f"🔗 [RAG QUERY] Invoking semantic_rag chain...")
+                result = self.chains["semantic_rag"].invoke(input_data)
+                logger.info(f"✅ [RAG QUERY] Semantic chain execution completed")
+                
+            elif method == "tool" and self.search_tool:
+                logger.info(f"🔗 [RAG QUERY] Using TOOL chain")
+                logger.info(f"🔗 [RAG QUERY] Chain type: {type(self.chains['tool_search'])}")
+                logger.info(f"🔗 [RAG QUERY] Chain has invoke method: {hasattr(self.chains['tool_search'], 'invoke')}")
+                logger.info(f"🔗 [RAG QUERY] Invoking tool_search chain...")
+                result = self.chains["tool_search"].invoke(input_data)
+                logger.info(f"✅ [RAG QUERY] Tool chain execution completed")
+                
+            elif method == "hybrid" and self.search_tool:
+                logger.info(f"🔗 [RAG QUERY] Using HYBRID chain")
+                logger.info(f"🔗 [RAG QUERY] Chain type: {type(self.chains['hybrid_rag'])}")
+                logger.info(f"🔗 [RAG QUERY] Chain has invoke method: {hasattr(self.chains['hybrid_rag'], 'invoke')}")
+                logger.info(f"🔗 [RAG QUERY] Invoking hybrid_rag chain...")
+                result = self.chains["hybrid_rag"].invoke(input_data)
+                logger.info(f"✅ [RAG QUERY] Hybrid chain execution completed")
+                
+            elif method == "production":
+                logger.info(f"🔄 [RAG QUERY] Using PRODUCTION workflow")
+                logger.info(f"🔄 [RAG QUERY] Workflow type: {type(self.workflows['production_rag'])}")
+                logger.info(f"🔄 [RAG QUERY] Workflow has invoke method: {hasattr(self.workflows['production_rag'], 'invoke')}")
+                logger.info(f"🔄 [RAG QUERY] Invoking production_rag workflow...")
+                result = self.workflows["production_rag"].invoke(input_data)
+                logger.info(f"✅ [RAG QUERY] Production workflow execution completed")
+                
+            else:
+                error_msg = f"Invalid method: {method}"
+                logger.error(f"❌ [RAG QUERY] {error_msg}")
+                raise ValueError(error_msg)
+            
+            logger.info(f"📊 [RAG QUERY] Chain/workflow execution completed")
+            logger.info(f"📊 [RAG QUERY] Result type: {type(result)}")
+            logger.info(f"📊 [RAG QUERY] Result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
+            
+            # Log result details
+            if isinstance(result, dict):
+                logger.info(f"📊 [RAG QUERY] Result details:")
+                for key, value in result.items():
+                    if key == "response":
+                        logger.info(f"  📝 {key}: {str(value)[:200]}...")
+                    elif key == "context":
+                        logger.info(f"  📚 {key}: {len(value) if isinstance(value, list) else 'Not a list'} items")
+                        if isinstance(value, list) and len(value) > 0:
+                            logger.info(f"    First context item: {str(value[0])[:100]}...")
+                    else:
+                        logger.info(f"  🔑 {key}: {str(value)[:100]}...")
             
             # Add confidence scoring if requested
             if include_confidence and "response" in result:
-                logger.info(f"🎯 Adding confidence scoring")
-                confidence_result = self.chains["confidence"].invoke({
+                logger.info(f"🎯 [RAG QUERY] Adding confidence scoring...")
+                logger.info(f"🎯 [RAG QUERY] Confidence chain type: {type(self.chains['confidence'])}")
+                logger.info(f"🎯 [RAG QUERY] Confidence chain has invoke: {hasattr(self.chains['confidence'], 'invoke')}")
+                
+                confidence_input = {
                     "question": question,
                     "context": result.get("context", []),
                     "response": result["response"]
-                })
+                }
+                logger.info(f"🎯 [RAG QUERY] Confidence input prepared: {list(confidence_input.keys())}")
+                
+                confidence_result = self.chains["confidence"].invoke(confidence_input)
                 result["confidence"] = confidence_result.get("confidence", {})
+                
+                logger.info(f"✅ [RAG QUERY] Confidence scoring completed")
+                logger.info(f"🎯 [RAG QUERY] Confidence result: {result.get('confidence', {})}")
             
             # Add metadata
             result["metadata"] = {
@@ -342,16 +392,24 @@ class ProductionRAGSystem:
                 "system_version": "1.0.0"
             }
             
-            logger.info(f"✅ Query processed successfully using {method}")
+            logger.info(f"🎉 [RAG QUERY] Query processed successfully using {method}")
+            logger.info(f"🎉 [RAG QUERY] Final result keys: {list(result.keys())}")
+            logger.info(f"🚀 [RAG QUERY] ==========================================")
+            
             return result
             
         except Exception as e:
             error_msg = f"Query failed: {str(e)}"
-            logger.error(error_msg)
-            logger.error(f"🔍 Error type: {type(e)}")
-            logger.error(f"🔍 Error args: {e.args}")
+            logger.error(f"💥 [RAG QUERY] ==========================================")
+            logger.error(f"💥 [RAG QUERY] QUERY FAILED!")
+            logger.error(f"💥 [RAG QUERY] Error: {error_msg}")
+            logger.error(f"💥 [RAG QUERY] Question: '{question}'")
+            logger.error(f"💥 [RAG QUERY] Method: {method}")
+            logger.error(f"💥 [RAG QUERY] Error type: {type(e)}")
+            logger.error(f"💥 [RAG QUERY] Error args: {e.args}")
             import traceback
-            logger.error(f"🔍 Full traceback: {traceback.format_exc()}")
+            logger.error(f"💥 [RAG QUERY] Full traceback: {traceback.format_exc()}")
+            logger.error(f"💥 [RAG QUERY] ==========================================")
             raise RAGException(error_msg) from e
     
     def get_system_stats(self) -> Dict[str, Any]:
@@ -367,10 +425,9 @@ class ProductionRAGSystem:
                 "processed_documents": len(self.processed_documents),
                 "chunked_documents": len(self.chunked_documents)
             },
-            "retrievers": {
-                "naive": self.naive_retriever.get_retriever_stats(),
-                "semantic": self.semantic_retriever.get_retriever_stats(),
-                "tool": self.tool_retriever.get_retriever_stats() if self.tool_retriever else None
+            "chains": {
+                "available": list(self.chains.keys()),
+                "count": len(self.chains)
             },
             "vector_store": self.vector_store_manager.get_stats(),
             "configuration": {
@@ -397,11 +454,10 @@ class ProductionRAGSystem:
             # Check vector store
             health_status["components"]["vector_store"] = self.vector_store_manager.qdrant_manager.health_check()
             
-            # Check retrievers
-            health_status["components"]["retrievers"] = {
-                "naive": True,
-                "semantic": True,
-                "tool": self.tool_retriever is not None
+            # Check chains
+            health_status["components"]["chains"] = {
+                "count": len(self.chains),
+                "available": list(self.chains.keys())
             }
             
             # Check LLM

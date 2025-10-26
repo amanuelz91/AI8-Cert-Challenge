@@ -57,7 +57,7 @@ class RetrievalConfig(BaseSettings):
     """Retrieval strategy configuration."""
     
     default_k: int = Field(default=5, env="RETRIEVAL_K")
-    similarity_threshold: float = Field(default=0.7, env="SIMILARITY_THRESHOLD")
+    similarity_threshold: float = Field(default=0.3, env="SIMILARITY_THRESHOLD")
     max_context_length: int = Field(default=4000, env="MAX_CONTEXT_LENGTH")
     
     class Config:
@@ -89,6 +89,29 @@ class LoggingConfig(BaseSettings):
         extra = "ignore"
 
 
+class EvaluationConfig(BaseSettings):
+    """RAG evaluation configuration."""
+    
+    testset_size: int = Field(default=10, env="EVAL_TESTSET_SIZE")
+    generator_model: str = Field(default="gpt-4o", env="EVAL_GENERATOR_MODEL")
+    generator_temperature: float = Field(default=0.7, env="EVAL_GENERATOR_TEMP")
+    evaluator_model: str = Field(default="gpt-4o-mini", env="EVAL_EVALUATOR_MODEL")
+    evaluator_temperature: float = Field(default=0.0, env="EVAL_EVALUATOR_TEMP")
+    embedding_model: str = Field(default="text-embedding-3-small", env="EVAL_EMBEDDING_MODEL")
+    timeout: int = Field(default=360, env="EVAL_TIMEOUT")
+    batch_size: int = Field(default=5, env="EVAL_BATCH_SIZE")
+    langsmith_project: str = Field(default="rag-evaluation", env="LANGSMITH_PROJECT")
+    langsmith_tracing: bool = Field(default=True, env="LANGSMITH_TRACING")
+    results_dir: str = Field(default="./evaluation_results", env="EVAL_RESULTS_DIR")
+    save_dataset: bool = Field(default=True, env="EVAL_SAVE_DATASET")
+    save_results: bool = Field(default=True, env="EVAL_SAVE_RESULTS")
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+        extra = "ignore"
+
+
 class RAGConfig(BaseSettings):
     """Main RAG system configuration."""
     
@@ -98,11 +121,13 @@ class RAGConfig(BaseSettings):
     retrieval: RetrievalConfig = RetrievalConfig()
     data: DataConfig = DataConfig()
     logging: LoggingConfig = LoggingConfig()
+    evaluation: EvaluationConfig = EvaluationConfig()
     
     # API Keys
     openai_api_key: str = Field(..., env="OPENAI_API_KEY")
     cohere_api_key: Optional[str] = Field(default=None, env="COHERE_API_KEY")
     tavily_api_key: Optional[str] = Field(default=None, env="TAVILY_API_KEY")
+    langsmith_api_key: Optional[str] = Field(default=None, env="LANGSMITH_API_KEY")
     
     class Config:
         env_file = ".env"

@@ -1,0 +1,58 @@
+{
+  "timestamp": "2025-10-21T21:52:33.739204",
+  "config": {
+    "testset_size": 10,
+    "langsmith_project": "rag-evaluation",
+    "langsmith_tracing": true
+  },
+  "dataset_info": {
+    "filepath": "evaluation_results/evaluation_dataset_20251021_184451.csv",
+    "num_samples": 12
+  },
+  "evaluation_results": {
+    "individual_results": {
+      "naive": {
+        "error": "Failed to evaluate method naive: Failed to generate responses for method naive: ragas.dataset_schema.SingleTurnSample() argument after ** must be a mapping, not str",
+        "method": "naive",
+        "timestamp": "2025-10-21 18:45:50.230997"
+      },
+      "semantic": {
+        "error": "Failed to evaluate method semantic: Failed to generate responses for method semantic: ragas.dataset_schema.SingleTurnSample() argument after ** must be a mapping, not str",
+        "method": "semantic",
+        "timestamp": "2025-10-21 18:46:41.785888"
+      },
+      "tool": {
+        "error": "Failed to evaluate method tool: Failed to generate responses for method tool: ragas.dataset_schema.SingleTurnSample() argument after ** must be a mapping, not str",
+        "method": "tool",
+        "timestamp": "2025-10-21 21:51:18.778884"
+      },
+      "hybrid": {
+        "error": "Failed to evaluate method hybrid: Failed to generate responses for method hybrid: ragas.dataset_schema.SingleTurnSample() argument after ** must be a mapping, not str",
+        "method": "hybrid",
+        "timestamp": "2025-10-21 21:52:33.738136"
+      },
+      "production": {
+        "error": "Failed to evaluate method production: Failed to generate responses for method production: Query failed: At key 'question': Can receive only one value per step. Use an Annotated key to handle multiple values.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_CONCURRENT_GRAPH_UPDATE",
+        "method": "production",
+        "timestamp": "2025-10-21 21:49:58.029805"
+      }
+    },
+    "comparison": {
+      "method_rankings": [],
+      "best_method": null,
+      "score_differences": {},
+      "metric_comparisons": {}
+    },
+    "timestamp": "2025-10-21 21:52:33.738518",
+    "methods_evaluated": [
+      "naive",
+      "semantic",
+      "tool",
+      "hybrid",
+      "production",
+      "tool",
+      "hybrid"
+    ],
+    "total_methods": 7
+  }
+}

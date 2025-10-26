@@ -1,0 +1,44 @@
+{
+  "individual_results": {
+    "naive": {
+      "error": "Failed to evaluate method naive: Failed to prepare dataset: Failed to load dataset: Dataset file not found: ./evaluation_results/dataset.csv",
+      "method": "naive",
+      "timestamp": "2025-10-25 13:17:41.874103"
+    },
+    "semantic": {
+      "error": "Failed to evaluate method semantic: Failed to prepare dataset: Failed to load dataset: Dataset file not found: ./evaluation_results/dataset.csv",
+      "method": "semantic",
+      "timestamp": "2025-10-25 13:17:41.874223"
+    },
+    "production": {
+      "error": "Failed to evaluate method production: Failed to prepare dataset: Failed to load dataset: Dataset file not found: ./evaluation_results/dataset.csv",
+      "method": "production",
+      "timestamp": "2025-10-25 13:17:41.874299"
+    },
+    "tool": {
+      "error": "Failed to evaluate method tool: Failed to prepare dataset: Failed to load dataset: Dataset file not found: ./evaluation_results/dataset.csv",
+      "method": "tool",
+      "timestamp": "2025-10-25 13:17:41.874383"
+    },
+    "hybrid": {
+      "error": "Failed to evaluate method hybrid: Failed to prepare dataset: Failed to load dataset: Dataset file not found: ./evaluation_results/dataset.csv",
+      "method": "hybrid",
+      "timestamp": "2025-10-25 13:17:41.874539"
+    }
+  },
+  "comparison": {
+    "method_rankings": [],
+    "best_method": null,
+    "score_differences": {},
+    "metric_comparisons": {}
+  },
+  "timestamp": "2025-10-25 13:17:41.874621",
+  "methods_evaluated": [
+    "naive",
+    "semantic",
+    "production",
+    "tool",
+    "hybrid"
+  ],
+  "total_methods": 5
+}

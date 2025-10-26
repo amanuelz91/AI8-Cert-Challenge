@@ -69,7 +69,7 @@ class RAGWorkflowBuilder:
                 
                 # Update state
                 state["naive_context"] = documents
-                state["retrieval_method"] = "naive"
+                state["retrieval_method"] = ["naive"]
                 state["metadata"]["naive_retrieval"] = {
                     "num_documents": len(documents),
                     "retriever_name": retriever.name
@@ -105,7 +105,7 @@ class RAGWorkflowBuilder:
                 
                 # Update state
                 state["semantic_context"] = documents
-                state["retrieval_method"] = "semantic"
+                state["retrieval_method"] = ["semantic"]
                 state["metadata"]["semantic_retrieval"] = {
                     "num_documents": len(documents),
                     "retriever_name": retriever.name
@@ -141,7 +141,7 @@ class RAGWorkflowBuilder:
                 
                 # Update state
                 state["tool_context"] = documents
-                state["retrieval_method"] = "tool_based"
+                state["retrieval_method"] = ["tool_based"]
                 state["metadata"]["tool_retrieval"] = {
                     "num_documents": len(documents),
                     "retriever_name": retriever.name

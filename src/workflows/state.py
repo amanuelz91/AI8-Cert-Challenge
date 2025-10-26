@@ -4,9 +4,10 @@ State definitions for LangGraph workflows.
 Contains TypedDict classes for state management in RAG workflows.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Annotated
 from typing_extensions import TypedDict
 from langchain_core.documents import Document
+from operator import add
 
 
 class BaseRAGState(TypedDict):
@@ -60,6 +61,7 @@ class ProductionRAGState(HybridRAGState):
     quality_metrics: Dict[str, float]
     performance_metrics: Dict[str, Any]
     error_handling: Optional[str]
+    retrieval_method: Annotated[List[str], add]
 
 
 class EvaluationWorkflowState(BaseRAGState):

@@ -67,19 +67,81 @@ class SemanticRetriever(BaseRAGRetriever):
             RetrievalError: If retrieval fails
         """
         try:
-            logger.info(f"🧠 [Semantic] Retrieving documents for: {query[:50]}...")
+            logger.info(f"🧠 [SEMANTIC RETRIEVAL] Starting retrieval for query: '{query}'")
+            logger.info(f"🧠 [SEMANTIC RETRIEVAL] Parameters: k={self.k}, threshold={self.similarity_threshold}")
+            logger.info(f"🧠 [SEMANTIC RETRIEVAL] Breakpoint threshold type: {self.breakpoint_threshold_type}")
             
             # Use similarity search with score
-            docs_with_scores = self.vector_store.similarity_search_with_score(
-                query, 
-                k=self.k
-            )
+            logger.debug(f"🧠 [SEMANTIC RETRIEVAL] Calling vector_store.similarity_search_with_score with k={self.k}")
+            
+            # Try to get documents with full payload using direct Qdrant client
+            try:
+                # Get query embedding using the embeddings from the retriever
+                query_embedding = self.embeddings.embed_query(query)
+                
+                # Search using direct Qdrant client with full payload
+                search_results = self.vector_store.client.search(
+                    collection_name=self.vector_store.collection_name,
+                    query_vector=query_embedding,
+                    limit=self.k,
+                    with_payload=True,
+                    with_vectors=False
+                )
+                
+                # Convert Qdrant results to Document objects
+                docs_with_scores = []
+                for result in search_results:
+                    # Extract content from payload
+                    content = result.payload.get('content', '') or result.payload.get('page_content', '')
+                    
+                    # Create Document object
+                    doc = Document(
+                        page_content=content,
+                        metadata={
+                            '_id': result.id,
+                            '_collection_name': self.vector_store.collection_name,
+                            **result.payload
+                        }
+                    )
+                    
+                    # Convert distance to similarity score
+                    distance = result.score
+                    docs_with_scores.append((doc, distance))
+                
+                logger.info(f"🧠 [SEMANTIC RETRIEVAL] Direct Qdrant search returned {len(docs_with_scores)} documents")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ [SEMANTIC RETRIEVAL] Direct Qdrant search failed: {str(e)}")
+                logger.info(f"🧠 [SEMANTIC RETRIEVAL] Falling back to LangChain similarity_search_with_score")
+                
+                # Fallback to LangChain method
+                docs_with_scores = self.vector_store.similarity_search_with_score(
+                    query, 
+                    k=self.k
+                )
+            
+            logger.info(f"🧠 [SEMANTIC RETRIEVAL] Vector store returned {len(docs_with_scores)} documents")
             
             # Filter by similarity threshold and enhance with semantic info
             filtered_docs = []
-            for doc, score in docs_with_scores:
+            rejected_docs = []
+            
+            logger.info(f"🧠 [SEMANTIC RETRIEVAL] Analyzing semantic similarity scores:")
+            for i, (doc, score) in enumerate(docs_with_scores):
                 # Convert distance to similarity (Qdrant returns distance)
                 similarity = 1 - score
+                
+                # Fix: If page_content is empty but content exists in metadata, use it
+                if not doc.page_content and doc.metadata and 'content' in doc.metadata:
+                    doc.page_content = doc.metadata['content']
+                    logger.info(f"  🔧 [SEMANTIC RETRIEVAL] Fixed empty page_content using metadata['content']")
+                
+                doc_preview = doc.page_content[:100].replace('\n', ' ') if doc.page_content else "NO CONTENT"
+                
+                logger.info(f"  📄 Doc {i+1}: similarity={similarity:.4f}, distance={score:.4f}")
+                logger.info(f"      Content preview: {doc_preview}...")
+                logger.info(f"      Metadata: {doc.metadata}")
+                
                 if similarity >= self.similarity_threshold:
                     # Add semantic metadata
                     if not hasattr(doc, 'metadata') or doc.metadata is None:
@@ -88,15 +150,34 @@ class SemanticRetriever(BaseRAGRetriever):
                     doc.metadata['relevance_score'] = similarity
                     doc.metadata['chunking_method'] = 'semantic'
                     doc.metadata['breakpoint_threshold'] = self.breakpoint_threshold_type
+                    doc.metadata['retrieval_method'] = 'semantic'
                     filtered_docs.append(doc)
+                    logger.info(f"      ✅ ACCEPTED (above threshold {self.similarity_threshold})")
+                else:
+                    rejected_docs.append((doc, similarity))
+                    logger.warning(f"      ❌ REJECTED (below threshold {self.similarity_threshold})")
             
-            logger.info(f"📚 [Semantic] Retrieved {len(filtered_docs)} documents "
-                       f"(threshold={self.similarity_threshold})")
+            logger.info(f"📚 [SEMANTIC RETRIEVAL] Final results:")
+            logger.info(f"  ✅ Accepted: {len(filtered_docs)} documents")
+            logger.info(f"  ❌ Rejected: {len(rejected_docs)} documents")
+            logger.info(f"  📊 Acceptance rate: {len(filtered_docs)/len(docs_with_scores)*100:.1f}%")
+            
+            if len(filtered_docs) == 0:
+                logger.warning(f"⚠️ [SEMANTIC RETRIEVAL] NO DOCUMENTS PASSED SIMILARITY THRESHOLD!")
+                logger.warning(f"⚠️ [SEMANTIC RETRIEVAL] Consider lowering threshold from {self.similarity_threshold}")
+                if rejected_docs:
+                    best_similarity = max(similarity for _, similarity in rejected_docs)
+                    logger.warning(f"⚠️ [SEMANTIC RETRIEVAL] Best similarity score was: {best_similarity:.4f}")
+            
             return filtered_docs
             
         except Exception as e:
             error_msg = f"Semantic retrieval failed: {str(e)}"
             logger.error(error_msg)
+            logger.error(f"🧠 [SEMANTIC RETRIEVAL] Query that failed: '{query}'")
+            logger.error(f"🧠 [SEMANTIC RETRIEVAL] Parameters: k={self.k}, threshold={self.similarity_threshold}")
+            import traceback
+            logger.error(f"🧠 [SEMANTIC RETRIEVAL] Full traceback: {traceback.format_exc()}")
             raise RetrievalError(error_msg) from e
     
     @timing_decorator

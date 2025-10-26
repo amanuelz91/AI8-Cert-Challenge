@@ -1,0 +1,44 @@
+{
+  "individual_results": {
+    "naive": {
+      "error": "Failed to evaluate method naive: Failed to process results for method naive: Could not convert string 'Can students receive Direct Subsidized Loans if their parents refuse to file a FAFSA?Who is eligible to borrow a Direct PLUS Loan on behalf of a dependent undergraduate student?What happens to Direct Loan disbursements if a student drops to less-than-half-time enrollment?What are the counseling requirements for Direct Loan borrowers?How does a concerned parent navigate the credit hours and Direct Loan eligibility for their child's higher education when the program uses BBAY 2 and is not in a traditional academic year calendar?How do the disbursement rules for Pell Grants and Title IV funds differ in clock-hour programs compared to subscription-based programs?In what circumstances can a Direct PLUS Loan be originated for a surviving parent or a dependent student, and how do exceptions to the normal loan period apply when clinical work is included in a standard term?How is Pell Grant eligibility determined for students enrolled in correspondence programs, and what are the specific payment period requirements?How do the examples of legal dependents and family size affect a student's eligibility for federal student aid?How does 34 CFR 668.4(e) relate to the recalculation of Pell Grant awards for students who graduate early from a clock-hour program, and what are the implications under 34 CFR 668.61?How do the cost of attendance calculations for correspondence study programs relate to the exceptions for loan periods when clinical work is included, as discussed in Chapter 1 and Chapter 3?How can a concerned parent in the U.S. navigate the credit history requirements for Direct PLUS Loans while ensuring their child's Cost of Attendance (COA) includes allowances for dependent care and disability-related expenses?' to numeric",
+      "method": "naive",
+      "timestamp": "2025-10-25 13:35:14.653921"
+    },
+    "semantic": {
+      "error": "Failed to evaluate method semantic: Failed to process results for method semantic: Could not convert string 'Can students receive Direct Subsidized Loans if their parents refuse to file a FAFSA?Who is eligible to borrow a Direct PLUS Loan on behalf of a dependent undergraduate student?What happens to Direct Loan disbursements if a student drops to less-than-half-time enrollment?What are the counseling requirements for Direct Loan borrowers?How does a concerned parent navigate the credit hours and Direct Loan eligibility for their child's higher education when the program uses BBAY 2 and is not in a traditional academic year calendar?How do the disbursement rules for Pell Grants and Title IV funds differ in clock-hour programs compared to subscription-based programs?In what circumstances can a Direct PLUS Loan be originated for a surviving parent or a dependent student, and how do exceptions to the normal loan period apply when clinical work is included in a standard term?How is Pell Grant eligibility determined for students enrolled in correspondence programs, and what are the specific payment period requirements?How do the examples of legal dependents and family size affect a student's eligibility for federal student aid?How does 34 CFR 668.4(e) relate to the recalculation of Pell Grant awards for students who graduate early from a clock-hour program, and what are the implications under 34 CFR 668.61?How do the cost of attendance calculations for correspondence study programs relate to the exceptions for loan periods when clinical work is included, as discussed in Chapter 1 and Chapter 3?How can a concerned parent in the U.S. navigate the credit history requirements for Direct PLUS Loans while ensuring their child's Cost of Attendance (COA) includes allowances for dependent care and disability-related expenses?' to numeric",
+      "method": "semantic",
+      "timestamp": "2025-10-25 13:42:29.690212"
+    },
+    "production": {
+      "error": "Failed to evaluate method production: Failed to generate responses for method production: Query failed: At key 'question': Can receive only one value per step. Use an Annotated key to handle multiple values.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_CONCURRENT_GRAPH_UPDATE",
+      "method": "production",
+      "timestamp": "2025-10-25 13:42:32.140162"
+    },
+    "tool": {
+      "error": "Failed to evaluate method tool: Failed to process results for method tool: Could not convert string 'Can students receive Direct Subsidized Loans if their parents refuse to file a FAFSA?Who is eligible to borrow a Direct PLUS Loan on behalf of a dependent undergraduate student?What happens to Direct Loan disbursements if a student drops to less-than-half-time enrollment?What are the counseling requirements for Direct Loan borrowers?How does a concerned parent navigate the credit hours and Direct Loan eligibility for their child's higher education when the program uses BBAY 2 and is not in a traditional academic year calendar?How do the disbursement rules for Pell Grants and Title IV funds differ in clock-hour programs compared to subscription-based programs?In what circumstances can a Direct PLUS Loan be originated for a surviving parent or a dependent student, and how do exceptions to the normal loan period apply when clinical work is included in a standard term?How is Pell Grant eligibility determined for students enrolled in correspondence programs, and what are the specific payment period requirements?How do the examples of legal dependents and family size affect a student's eligibility for federal student aid?How does 34 CFR 668.4(e) relate to the recalculation of Pell Grant awards for students who graduate early from a clock-hour program, and what are the implications under 34 CFR 668.61?How do the cost of attendance calculations for correspondence study programs relate to the exceptions for loan periods when clinical work is included, as discussed in Chapter 1 and Chapter 3?How can a concerned parent in the U.S. navigate the credit history requirements for Direct PLUS Loans while ensuring their child's Cost of Attendance (COA) includes allowances for dependent care and disability-related expenses?' to numeric",
+      "method": "tool",
+      "timestamp": "2025-10-25 13:48:00.429483"
+    },
+    "hybrid": {
+      "error": "Failed to evaluate method hybrid: Failed to process results for method hybrid: Could not convert string 'Can students receive Direct Subsidized Loans if their parents refuse to file a FAFSA?Who is eligible to borrow a Direct PLUS Loan on behalf of a dependent undergraduate student?What happens to Direct Loan disbursements if a student drops to less-than-half-time enrollment?What are the counseling requirements for Direct Loan borrowers?How does a concerned parent navigate the credit hours and Direct Loan eligibility for their child's higher education when the program uses BBAY 2 and is not in a traditional academic year calendar?How do the disbursement rules for Pell Grants and Title IV funds differ in clock-hour programs compared to subscription-based programs?In what circumstances can a Direct PLUS Loan be originated for a surviving parent or a dependent student, and how do exceptions to the normal loan period apply when clinical work is included in a standard term?How is Pell Grant eligibility determined for students enrolled in correspondence programs, and what are the specific payment period requirements?How do the examples of legal dependents and family size affect a student's eligibility for federal student aid?How does 34 CFR 668.4(e) relate to the recalculation of Pell Grant awards for students who graduate early from a clock-hour program, and what are the implications under 34 CFR 668.61?How do the cost of attendance calculations for correspondence study programs relate to the exceptions for loan periods when clinical work is included, as discussed in Chapter 1 and Chapter 3?How can a concerned parent in the U.S. navigate the credit history requirements for Direct PLUS Loans while ensuring their child's Cost of Attendance (COA) includes allowances for dependent care and disability-related expenses?' to numeric",
+      "method": "hybrid",
+      "timestamp": "2025-10-25 13:52:40.627759"
+    }
+  },
+  "comparison": {
+    "method_rankings": [],
+    "best_method": null,
+    "score_differences": {},
+    "metric_comparisons": {}
+  },
+  "timestamp": "2025-10-25 13:52:40.627845",
+  "methods_evaluated": [
+    "naive",
+    "semantic",
+    "production",
+    "tool",
+    "hybrid"
+  ],
+  "total_methods": 5
+}

@@ -1,0 +1,32 @@
+{
+  "individual_results": {
+    "naive": {
+      "error": "Failed to evaluate method naive: Failed to generate responses for method naive: 0",
+      "method": "naive",
+      "timestamp": "2025-10-23 19:20:15.699438"
+    },
+    "tool": {
+      "error": "Failed to evaluate method tool: Failed to generate responses for method tool: 0",
+      "method": "tool",
+      "timestamp": "2025-10-23 19:21:44.082473"
+    },
+    "hybrid": {
+      "error": "Failed to evaluate method hybrid: Failed to generate responses for method hybrid: 0",
+      "method": "hybrid",
+      "timestamp": "2025-10-23 19:23:13.010434"
+    }
+  },
+  "comparison": {
+    "method_rankings": [],
+    "best_method": null,
+    "score_differences": {},
+    "metric_comparisons": {}
+  },
+  "timestamp": "2025-10-23 19:23:13.010573",
+  "methods_evaluated": [
+    "naive",
+    "tool",
+    "hybrid"
+  ],
+  "total_methods": 3
+}

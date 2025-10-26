@@ -1,0 +1,32 @@
+{
+  "individual_results": {
+    "naive": {
+      "error": "Failed to evaluate method naive: Failed to generate responses for method naive: ragas.dataset_schema.SingleTurnSample() argument after ** must be a mapping, not str",
+      "method": "naive",
+      "timestamp": "2025-10-23 18:29:20.823276"
+    },
+    "tool": {
+      "error": "Failed to evaluate method tool: Failed to generate responses for method tool: ragas.dataset_schema.SingleTurnSample() argument after ** must be a mapping, not str",
+      "method": "tool",
+      "timestamp": "2025-10-23 18:31:38.232354"
+    },
+    "hybrid": {
+      "error": "Failed to evaluate method hybrid: Failed to generate responses for method hybrid: ragas.dataset_schema.SingleTurnSample() argument after ** must be a mapping, not str",
+      "method": "hybrid",
+      "timestamp": "2025-10-23 18:33:33.142585"
+    }
+  },
+  "comparison": {
+    "method_rankings": [],
+    "best_method": null,
+    "score_differences": {},
+    "metric_comparisons": {}
+  },
+  "timestamp": "2025-10-23 18:33:33.143068",
+  "methods_evaluated": [
+    "naive",
+    "tool",
+    "hybrid"
+  ],
+  "total_methods": 3
+}

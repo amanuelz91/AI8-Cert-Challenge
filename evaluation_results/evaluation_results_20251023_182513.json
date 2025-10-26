@@ -1,0 +1,44 @@
+{
+  "individual_results": {
+    "naive": {
+      "error": "Failed to evaluate method naive: Failed to prepare dataset: 1 validation error for SingleTurnSample\nreference_contexts\n  Input should be a valid list [type=list_type, input_value=\"['information, see the d...ns= in DCL GEN-11-07.']\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type",
+      "method": "naive",
+      "timestamp": "2025-10-23 18:25:13.116021"
+    },
+    "semantic": {
+      "error": "Failed to evaluate method semantic: Failed to prepare dataset: 1 validation error for SingleTurnSample\nreference_contexts\n  Input should be a valid list [type=list_type, input_value=\"['information, see the d...ns= in DCL GEN-11-07.']\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type",
+      "method": "semantic",
+      "timestamp": "2025-10-23 18:25:13.117399"
+    },
+    "production": {
+      "error": "Failed to evaluate method production: Failed to prepare dataset: 1 validation error for SingleTurnSample\nreference_contexts\n  Input should be a valid list [type=list_type, input_value=\"['information, see the d...ns= in DCL GEN-11-07.']\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type",
+      "method": "production",
+      "timestamp": "2025-10-23 18:25:13.118458"
+    },
+    "tool": {
+      "error": "Failed to evaluate method tool: Failed to prepare dataset: 1 validation error for SingleTurnSample\nreference_contexts\n  Input should be a valid list [type=list_type, input_value=\"['information, see the d...ns= in DCL GEN-11-07.']\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type",
+      "method": "tool",
+      "timestamp": "2025-10-23 18:25:13.119438"
+    },
+    "hybrid": {
+      "error": "Failed to evaluate method hybrid: Failed to prepare dataset: 1 validation error for SingleTurnSample\nreference_contexts\n  Input should be a valid list [type=list_type, input_value=\"['information, see the d...ns= in DCL GEN-11-07.']\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type",
+      "method": "hybrid",
+      "timestamp": "2025-10-23 18:25:13.120376"
+    }
+  },
+  "comparison": {
+    "method_rankings": [],
+    "best_method": null,
+    "score_differences": {},
+    "metric_comparisons": {}
+  },
+  "timestamp": "2025-10-23 18:25:13.120418",
+  "methods_evaluated": [
+    "naive",
+    "semantic",
+    "production",
+    "tool",
+    "hybrid"
+  ],
+  "total_methods": 5
+}

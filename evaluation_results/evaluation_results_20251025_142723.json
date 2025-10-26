@@ -1,0 +1,32 @@
+{
+  "individual_results": {
+    "naive": {
+      "error": "Failed to evaluate method naive: Failed to process results for method naive: Could not convert string 'What are Direct Subsidized Loans?What role does the Cost of Attendance (COA) play in determining a student's financial aid eligibility, and how are allowable costs factored into this calculation?How does the FAFSA Simplification Act impact the calculation of student aid for periods shorter than nine months, and what role does the FUTURE Act play in verifying income and tax information for FAFSA applicants?' to numeric",
+      "method": "naive",
+      "timestamp": "2025-10-25 14:23:32.677736"
+    },
+    "tool": {
+      "error": "Failed to evaluate method tool: Failed to process results for method tool: Could not convert string 'What are Direct Subsidized Loans?What role does the Cost of Attendance (COA) play in determining a student's financial aid eligibility, and how are allowable costs factored into this calculation?How does the FAFSA Simplification Act impact the calculation of student aid for periods shorter than nine months, and what role does the FUTURE Act play in verifying income and tax information for FAFSA applicants?' to numeric",
+      "method": "tool",
+      "timestamp": "2025-10-25 14:25:17.103200"
+    },
+    "hybrid": {
+      "error": "Failed to evaluate method hybrid: Failed to process results for method hybrid: Could not convert string 'What are Direct Subsidized Loans?What role does the Cost of Attendance (COA) play in determining a student's financial aid eligibility, and how are allowable costs factored into this calculation?How does the FAFSA Simplification Act impact the calculation of student aid for periods shorter than nine months, and what role does the FUTURE Act play in verifying income and tax information for FAFSA applicants?' to numeric",
+      "method": "hybrid",
+      "timestamp": "2025-10-25 14:27:23.891449"
+    }
+  },
+  "comparison": {
+    "method_rankings": [],
+    "best_method": null,
+    "score_differences": {},
+    "metric_comparisons": {}
+  },
+  "timestamp": "2025-10-25 14:27:23.891571",
+  "methods_evaluated": [
+    "naive",
+    "tool",
+    "hybrid"
+  ],
+  "total_methods": 3
+}

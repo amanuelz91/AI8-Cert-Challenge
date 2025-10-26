@@ -175,12 +175,13 @@ class QdrantManager:
                 # Prepare points for this batch
                 points = []
                 for i, (doc, embedding, doc_id) in enumerate(zip(batch_documents, batch_embeddings, batch_ids)):
-                    # Prepare metadata
+                    # Prepare metadata - store content in the field that LangChain expects
                     metadata = doc.metadata.copy() if doc.metadata else {}
                     metadata.update({
-                        "content": doc.page_content,
-                        "document_id": f"doc_{doc_id}",  # String ID for reference
-                        "point_id": doc_id  # Integer ID used by Qdrant
+                        "page_content": doc.page_content,  # Use page_content field name
+                        "content": doc.page_content,       # Keep both for compatibility
+                        "document_id": f"doc_{doc_id}",   # String ID for reference
+                        "point_id": doc_id                 # Integer ID used by Qdrant
                     })
                     
                     point = PointStruct(
