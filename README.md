@@ -1,5 +1,13 @@
 # RAG System for Student Loan Customer Service
 
+## Demo
+
+**Video Walkthrough:** [Watch the demo on Loom](https://www.loom.com/share/6dae8f9691864374887b3b0b183b08aa)
+
+![UI Screenshot](ui-screenshot.png)
+
+The Student Loan Q&A Chatbot provides an intuitive interface for customer service representatives to quickly answer borrower questions. The interface features method selection (Production, Naive, Semantic, Tool, Hybrid, BM25), real-time chat responses with source citations, and confidence scoring.
+
 ## Task 1: Problem Statement
 
 ### 1. Write a succinct 1-sentence description of the problem

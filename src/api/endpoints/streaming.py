@@ -30,7 +30,8 @@ async def stream_query(request: QueryRequest):
             try:
                 async for chunk in rag_service.stream_query(
                     question=request.question,
-                    method=request.method,
+                    method=request.method if request.method != "production" else None,
+                    methods=request.methods,
                     include_confidence=request.include_confidence
                 ):
                     # Format as Server-Sent Events
@@ -78,7 +79,8 @@ async def stream_query_with_llm(request: QueryRequest):
             try:
                 async for chunk in rag_service.stream_query_with_llm(
                     question=request.question,
-                    method=request.method,
+                    method=request.method if request.method != "production" else None,
+                    methods=request.methods,
                     include_confidence=request.include_confidence
                 ):
                     # Format as Server-Sent Events

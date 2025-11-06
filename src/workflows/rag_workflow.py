@@ -17,6 +17,8 @@ from src.core.retrieval import (
     NaiveRetriever,
     SemanticRetriever,
     ToolBasedRetriever,
+    ParentDocumentRetrieverWrapper,
+    BM25RetrieverWrapper,
     RetrievalPipeline
 )
 from src.chains.rag_chains import RAGChainBuilder
@@ -59,7 +61,7 @@ class RAGWorkflowBuilder:
         Returns:
             Node function for naive retrieval
         """
-        def naive_retrieve(state: ProductionRAGState) -> ProductionRAGState:
+        def naive_retrieve(state: ProductionRAGState) -> Dict[str, Any]:
             """Naive retrieval node."""
             try:
                 logger.info(f"🔍 [Naive] Retrieving for: {state['question'][:50]}...")
@@ -67,21 +69,19 @@ class RAGWorkflowBuilder:
                 # Retrieve documents
                 documents = retriever.retrieve_documents(state["question"])
                 
-                # Update state
-                state["naive_context"] = documents
-                state["retrieval_method"] = ["naive"]
-                state["metadata"]["naive_retrieval"] = {
-                    "num_documents": len(documents),
-                    "retriever_name": retriever.name
-                }
-                
+                # Return only the fields we're updating (LangGraph will merge)
+                # Don't update metadata here - it will be handled in combine_contexts node
                 logger.info(f"📚 [Naive] Retrieved {len(documents)} documents")
-                return state
+                return {
+                    "naive_context": documents,
+                    "retrieval_method": ["naive"]
+                }
                 
             except Exception as e:
                 logger.error(f"❌ Naive retrieval failed: {str(e)}")
-                state["error_handling"] = f"Naive retrieval failed: {str(e)}"
-                return state
+                return {
+                    "error_handling": f"Naive retrieval failed: {str(e)}"
+                }
         
         return naive_retrieve
     
@@ -95,7 +95,7 @@ class RAGWorkflowBuilder:
         Returns:
             Node function for semantic retrieval
         """
-        def semantic_retrieve(state: ProductionRAGState) -> ProductionRAGState:
+        def semantic_retrieve(state: ProductionRAGState) -> Dict[str, Any]:
             """Semantic retrieval node."""
             try:
                 logger.info(f"🧠 [Semantic] Retrieving for: {state['question'][:50]}...")
@@ -103,21 +103,19 @@ class RAGWorkflowBuilder:
                 # Retrieve documents
                 documents = retriever.retrieve_documents(state["question"])
                 
-                # Update state
-                state["semantic_context"] = documents
-                state["retrieval_method"] = ["semantic"]
-                state["metadata"]["semantic_retrieval"] = {
-                    "num_documents": len(documents),
-                    "retriever_name": retriever.name
-                }
-                
+                # Return only the fields we're updating (LangGraph will merge)
+                # Don't update metadata here - it will be handled in combine_contexts node
                 logger.info(f"📚 [Semantic] Retrieved {len(documents)} documents")
-                return state
+                return {
+                    "semantic_context": documents,
+                    "retrieval_method": ["semantic"]
+                }
                 
             except Exception as e:
                 logger.error(f"❌ Semantic retrieval failed: {str(e)}")
-                state["error_handling"] = f"Semantic retrieval failed: {str(e)}"
-                return state
+                return {
+                    "error_handling": f"Semantic retrieval failed: {str(e)}"
+                }
         
         return semantic_retrieve
     
@@ -131,7 +129,7 @@ class RAGWorkflowBuilder:
         Returns:
             Node function for tool retrieval
         """
-        def tool_retrieve(state: ProductionRAGState) -> ProductionRAGState:
+        def tool_retrieve(state: ProductionRAGState) -> Dict[str, Any]:
             """Tool retrieval node."""
             try:
                 logger.info(f"🔧 [Tool] Retrieving for: {state['question'][:50]}...")
@@ -139,23 +137,89 @@ class RAGWorkflowBuilder:
                 # Retrieve documents
                 documents = retriever.retrieve_documents(state["question"])
                 
-                # Update state
-                state["tool_context"] = documents
-                state["retrieval_method"] = ["tool_based"]
-                state["metadata"]["tool_retrieval"] = {
-                    "num_documents": len(documents),
-                    "retriever_name": retriever.name
-                }
-                
+                # Return only the fields we're updating (LangGraph will merge)
+                # Don't update metadata here - it will be handled in combine_contexts node
                 logger.info(f"📚 [Tool] Retrieved {len(documents)} documents")
-                return state
+                return {
+                    "tool_context": documents,
+                    "retrieval_method": ["tool_based"]
+                }
                 
             except Exception as e:
                 logger.error(f"❌ Tool retrieval failed: {str(e)}")
-                state["error_handling"] = f"Tool retrieval failed: {str(e)}"
-                return state
+                return {
+                    "error_handling": f"Tool retrieval failed: {str(e)}"
+                }
         
         return tool_retrieve
+    
+    def create_parent_document_retrieval_node(self, retriever: ParentDocumentRetrieverWrapper):
+        """
+        Create parent document retrieval node.
+        
+        Args:
+            retriever: Parent document retriever instance
+            
+        Returns:
+            Node function for parent document retrieval
+        """
+        def parent_document_retrieve(state: ProductionRAGState) -> Dict[str, Any]:
+            """Parent document retrieval node."""
+            try:
+                logger.info(f"📄 [Parent Document] Retrieving for: {state['question'][:50]}...")
+                
+                # Retrieve documents
+                documents = retriever.retrieve_documents(state["question"])
+                
+                # Return only the fields we're updating (LangGraph will merge)
+                # Don't update metadata here - it will be handled in combine_contexts node
+                logger.info(f"📚 [Parent Document] Retrieved {len(documents)} documents")
+                return {
+                    "parent_context": documents,
+                    "retrieval_method": ["parent_document"]
+                }
+                
+            except Exception as e:
+                logger.error(f"❌ Parent document retrieval failed: {str(e)}")
+                return {
+                    "error_handling": f"Parent document retrieval failed: {str(e)}"
+                }
+        
+        return parent_document_retrieve
+    
+    def create_bm25_retrieval_node(self, retriever: BM25RetrieverWrapper):
+        """
+        Create BM25 retrieval node.
+        
+        Args:
+            retriever: BM25 retriever instance
+            
+        Returns:
+            Node function for BM25 retrieval
+        """
+        def bm25_retrieve(state: ProductionRAGState) -> Dict[str, Any]:
+            """BM25 retrieval node."""
+            try:
+                logger.info(f"🔤 [BM25] Retrieving for: {state['question'][:50]}...")
+                
+                # Retrieve documents
+                documents = retriever.retrieve_documents(state["question"])
+                
+                # Return only the fields we're updating (LangGraph will merge)
+                # Don't update metadata here - it will be handled in combine_contexts node
+                logger.info(f"📚 [BM25] Retrieved {len(documents)} documents")
+                return {
+                    "bm25_context": documents,
+                    "retrieval_method": ["bm25"]
+                }
+                
+            except Exception as e:
+                logger.error(f"❌ BM25 retrieval failed: {str(e)}")
+                return {
+                    "error_handling": f"BM25 retrieval failed: {str(e)}"
+                }
+        
+        return bm25_retrieve
     
     def create_context_combination_node(self):
         """
@@ -164,7 +228,7 @@ class RAGWorkflowBuilder:
         Returns:
             Node function for context combination
         """
-        def combine_contexts(state: ProductionRAGState) -> ProductionRAGState:
+        def combine_contexts(state: ProductionRAGState) -> Dict[str, Any]:
             """Context combination node."""
             try:
                 logger.info("🔄 Combining contexts from multiple retrievers")
@@ -172,17 +236,45 @@ class RAGWorkflowBuilder:
                 # Combine all contexts
                 combined_context = []
                 
+                # Build metadata from retrieval results
+                metadata_updates = {
+                    **state.get("metadata", {})
+                }
+                
                 # Add naive context
                 if "naive_context" in state and state["naive_context"]:
                     combined_context.extend(state["naive_context"])
+                    metadata_updates["naive_retrieval"] = {
+                        "num_documents": len(state["naive_context"])
+                    }
                 
                 # Add semantic context
                 if "semantic_context" in state and state["semantic_context"]:
                     combined_context.extend(state["semantic_context"])
+                    metadata_updates["semantic_retrieval"] = {
+                        "num_documents": len(state["semantic_context"])
+                    }
                 
                 # Add tool context
                 if "tool_context" in state and state["tool_context"]:
                     combined_context.extend(state["tool_context"])
+                    metadata_updates["tool_retrieval"] = {
+                        "num_documents": len(state["tool_context"])
+                    }
+                
+                # Add parent document context
+                if "parent_context" in state and state["parent_context"]:
+                    combined_context.extend(state["parent_context"])
+                    metadata_updates["parent_document_retrieval"] = {
+                        "num_documents": len(state["parent_context"])
+                    }
+                
+                # Add BM25 context
+                if "bm25_context" in state and state["bm25_context"]:
+                    combined_context.extend(state["bm25_context"])
+                    metadata_updates["bm25_retrieval"] = {
+                        "num_documents": len(state["bm25_context"])
+                    }
                 
                 # Remove duplicates based on content
                 seen_content = set()
@@ -193,21 +285,24 @@ class RAGWorkflowBuilder:
                         seen_content.add(content_key)
                         unique_context.append(doc)
                 
-                # Update state
-                state["combined_context"] = unique_context
-                state["metadata"]["context_combination"] = {
+                # Add context combination metadata
+                metadata_updates["context_combination"] = {
                     "total_documents": len(combined_context),
                     "unique_documents": len(unique_context),
                     "deduplication_applied": True
                 }
                 
                 logger.info(f"✅ Combined {len(unique_context)} unique documents")
-                return state
+                return {
+                    "combined_context": unique_context,
+                    "metadata": metadata_updates
+                }
                 
             except Exception as e:
                 logger.error(f"❌ Context combination failed: {str(e)}")
-                state["error_handling"] = f"Context combination failed: {str(e)}"
-                return state
+                return {
+                    "error_handling": f"Context combination failed: {str(e)}"
+                }
         
         return combine_contexts
     
@@ -270,7 +365,9 @@ Please provide a helpful response based on the context above."""
         self,
         naive_retriever: NaiveRetriever,
         semantic_retriever: SemanticRetriever,
-        tool_retriever: ToolBasedRetriever
+        tool_retriever: ToolBasedRetriever,
+        parent_document_retriever: Optional[ParentDocumentRetrieverWrapper] = None,
+        bm25_retriever: Optional[BM25RetrieverWrapper] = None
     ):
         """
         Create production RAG workflow.
@@ -279,6 +376,8 @@ Please provide a helpful response based on the context above."""
             naive_retriever: Naive retriever instance
             semantic_retriever: Semantic retriever instance
             tool_retriever: Tool retriever instance
+            parent_document_retriever: Parent document retriever instance (optional)
+            bm25_retriever: BM25 retriever instance (optional)
             
         Returns:
             Compiled LangGraph workflow
@@ -303,10 +402,28 @@ Please provide a helpful response based on the context above."""
             workflow.add_node("combine_contexts", combine_node)
             workflow.add_node("generate_response", generate_node)
             
-            # Add edges
+            # Add edges from START
             workflow.add_edge(START, "naive_retrieve")
             workflow.add_edge(START, "semantic_retrieve")
             workflow.add_edge(START, "tool_retrieve")
+            
+            # Add parent document retrieval node if provided
+            if parent_document_retriever is not None:
+                logger.info("📄 Adding parent document retrieval node to workflow")
+                parent_node = self.create_parent_document_retrieval_node(parent_document_retriever)
+                workflow.add_node("parent_document_retrieve", parent_node)
+                workflow.add_edge(START, "parent_document_retrieve")
+                workflow.add_edge("parent_document_retrieve", "combine_contexts")
+            
+            # Add BM25 retrieval node if provided
+            if bm25_retriever is not None:
+                logger.info("🔤 Adding BM25 retrieval node to workflow")
+                bm25_node = self.create_bm25_retrieval_node(bm25_retriever)
+                workflow.add_node("bm25_retrieve", bm25_node)
+                workflow.add_edge(START, "bm25_retrieve")
+                workflow.add_edge("bm25_retrieve", "combine_contexts")
+            
+            # Add edges to combine_contexts
             workflow.add_edge("naive_retrieve", "combine_contexts")
             workflow.add_edge("semantic_retrieve", "combine_contexts")
             workflow.add_edge("tool_retrieve", "combine_contexts")
@@ -394,16 +511,20 @@ def create_production_workflows(
     naive_retriever: NaiveRetriever,
     semantic_retriever: SemanticRetriever,
     tool_retriever: Optional[ToolBasedRetriever],
-    llm: Optional[ChatOpenAI] = None
+    llm: Optional[ChatOpenAI] = None,
+    parent_document_retriever: Optional[ParentDocumentRetrieverWrapper] = None,
+    bm25_retriever: Optional[BM25RetrieverWrapper] = None
 ) -> Dict[str, Any]:
     """
     Create all production RAG workflows.
     
-    Args:
-        naive_retriever: Naive retriever instance
-        semantic_retriever: Semantic retriever instance
-        tool_retriever: Tool retriever instance (can be None)
-        llm: Language model to use
+        Args:
+            naive_retriever: Naive retriever instance
+            semantic_retriever: Semantic retriever instance
+            tool_retriever: Tool retriever instance (can be None)
+            llm: Language model to use
+            parent_document_retriever: Parent document retriever instance (optional)
+            bm25_retriever: BM25 retriever instance (optional)
         
     Returns:
         Dictionary containing all workflows
@@ -416,7 +537,7 @@ def create_production_workflows(
     if tool_retriever:
         workflows.update({
             "production_rag": builder.create_production_rag_workflow(
-                naive_retriever, semantic_retriever, tool_retriever
+                naive_retriever, semantic_retriever, tool_retriever, parent_document_retriever, bm25_retriever
             ),
             "hybrid_rag": builder.create_hybrid_rag_workflow(
                 naive_retriever, tool_retriever

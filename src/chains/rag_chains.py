@@ -106,13 +106,20 @@ class RAGChainBuilder:
         
         return response
     
-    def create_naive_rag_chain(self, documents: List[Document], embeddings: OpenAIEmbeddings, k: int = 10):
+    def create_naive_rag_chain(
+        self, 
+        naive_retriever: Optional[Any] = None,
+        documents: Optional[List[Document]] = None, 
+        embeddings: Optional[Any] = None, 
+        k: int = 10
+    ):
         """
-        Create naive RAG chain using LCEL with simple Qdrant vectorstore.
+        Create naive RAG chain using LCEL. Reuses existing vector store if retriever is provided.
         
         Args:
-            documents: List of documents to create vectorstore from
-            embeddings: Embeddings model to use
+            naive_retriever: Existing NaiveRetriever instance (preferred - reuses main vector store)
+            documents: List of documents to create vectorstore from (fallback if retriever not provided)
+            embeddings: Embeddings model to use (required if documents provided)
             k: Number of documents to retrieve (default: 10)
             
         Returns:
@@ -120,34 +127,74 @@ class RAGChainBuilder:
         """
         try:
             logger.info("🔗 Creating naive RAG chain")
-            logger.info(f"📚 Documents count: {len(documents)}")
-            logger.info(f"🔍 Embeddings model: {embeddings.model}")
-            logger.info(f"🔍 k value: {k}")
             
-            # Create vectorstore from documents (in-memory)
-            logger.info("🗃️ Creating vectorstore from documents...")
-            vectorstore = QdrantVectorStore.from_documents(
-                documents,
-                embeddings,
-                location=":memory:",
-                collection_name="Naive_RAG_Collection"
-            )
-            logger.info("✅ Vectorstore created")
-            
-            # Create simple retriever
-            logger.info(f"🔍 Creating retriever with k={k}")
-            naive_retriever = vectorstore.as_retriever(search_kwargs={"k": k})
-            logger.info("✅ Retriever created")
+            # Prefer using existing retriever's vector store
+            if naive_retriever is not None:
+                logger.info("♻️ Reusing existing NaiveRetriever's vector store")
+                
+                # Extract vector store from NaiveRetriever
+                if hasattr(naive_retriever, 'vector_store'):
+                    vectorstore = naive_retriever.vector_store
+                    logger.info(f"✅ Using existing vector store from NaiveRetriever")
+                    logger.info(f"📦 Collection: {vectorstore.collection_name}")
+                    
+                    # Create LangChain retriever from existing vector store
+                    logger.info(f"🔍 Creating LangChain retriever with k={k}")
+                    langchain_retriever = vectorstore.as_retriever(search_kwargs={"k": k})
+                    logger.info("✅ LangChain retriever created")
+                    
+                else:
+                    # If it's already a LangChain retriever, use it directly
+                    logger.info("✅ Using provided retriever directly (already a LangChain retriever)")
+                    langchain_retriever = naive_retriever
+                    
+            elif documents is not None and embeddings is not None:
+                # Fallback: Create new in-memory vector store (for backward compatibility)
+                logger.warning("⚠️ Creating new in-memory vector store (consider using NaiveRetriever instead)")
+                logger.info(f"📚 Documents count: {len(documents)}")
+                
+                # Handle both OpenAIEmbeddings and OpenAIEmbeddingProvider
+                if hasattr(embeddings, 'embeddings'):
+                    # It's an OpenAIEmbeddingProvider, extract the underlying embeddings
+                    langchain_embeddings = embeddings.embeddings
+                    model_name = embeddings.model_name
+                elif hasattr(embeddings, 'model'):
+                    # It's OpenAIEmbeddings
+                    langchain_embeddings = embeddings
+                    model_name = embeddings.model
+                else:
+                    # Try to use as-is
+                    langchain_embeddings = embeddings
+                    model_name = getattr(embeddings, 'model_name', 'unknown')
+                
+                logger.info(f"🔍 Embeddings model: {model_name}")
+                logger.info(f"🔍 k value: {k}")
+                
+                # Create vectorstore from documents (in-memory)
+                logger.info("🗃️ Creating new in-memory vectorstore from documents...")
+                vectorstore = QdrantVectorStore.from_documents(
+                    documents,
+                    langchain_embeddings,
+                    location=":memory:",
+                    collection_name="Naive_RAG_Collection"
+                )
+                logger.info("✅ Vectorstore created")
+                
+                # Create simple retriever
+                logger.info(f"🔍 Creating retriever with k={k}")
+                langchain_retriever = vectorstore.as_retriever(search_kwargs={"k": k})
+                logger.info("✅ Retriever created")
+            else:
+                raise ValueError("Either naive_retriever or (documents + embeddings) must be provided")
             
             # Store retriever at class level
-            # self.retrievers['naive'] = naive_retriever
-            self.retriever_list.append(naive_retriever)
+            self.retriever_list.append(langchain_retriever)
             logger.info(f"📌 Added naive retriever to class retriever_list (total: {len(self.retriever_list)})")
             
             # Create the chain using LCEL with simple pattern
             chain = (
                 # {"question": "<<user question>>"}
-                {"context": itemgetter("question") | naive_retriever, "question": itemgetter("question")}
+                {"context": itemgetter("question") | langchain_retriever, "question": itemgetter("question")}
                 # Pass context through
                 | RunnablePassthrough.assign(context=itemgetter("context"))
                 # Generate response
@@ -155,7 +202,7 @@ class RAGChainBuilder:
             )
             
             logger.info(f"✅ Created naive RAG chain: {type(chain)}")
-            return chain, naive_retriever
+            return chain, langchain_retriever
             
         except Exception as e:
             error_msg = f"Failed to create naive RAG chain: {str(e)}"
@@ -250,15 +297,15 @@ class RAGChainBuilder:
     
     def create_hybrid_rag_chain(
         self, 
-        naive_retriever: NaiveRetriever, 
-        tool_retriever: ToolBasedRetriever
+        naive_retriever: Any, 
+        tool_retriever: Any
     ):
         """
         Create hybrid RAG chain combining knowledge base and search results.
         
         Args:
-            naive_retriever: Naive retriever for knowledge base
-            tool_retriever: Tool retriever for search results
+            naive_retriever: Naive retriever for knowledge base (can be NaiveRetriever or LangChain retriever)
+            tool_retriever: Tool retriever for search results (can be ToolBasedRetriever or LangChain retriever)
             
         Returns:
             LCEL chain for hybrid RAG
@@ -266,11 +313,34 @@ class RAGChainBuilder:
         try:
             logger.info("🔗 Creating hybrid RAG chain")
             
+            # Create adapter functions that work with both custom retrievers and LangChain retrievers
+            def knowledge_retrieve(query: str):
+                """Retrieve from knowledge base."""
+                if hasattr(naive_retriever, 'retrieve_documents'):
+                    # Custom retriever (NaiveRetriever, etc.)
+                    return naive_retriever.retrieve_documents(query)
+                elif hasattr(naive_retriever, 'invoke'):
+                    # LangChain retriever
+                    return naive_retriever.invoke(query)
+                else:
+                    raise ValueError(f"Unknown retriever type: {type(naive_retriever)}")
+            
+            def search_retrieve(query: str):
+                """Retrieve from search tool."""
+                if hasattr(tool_retriever, 'retrieve_documents'):
+                    # Custom retriever (ToolBasedRetriever, etc.)
+                    return tool_retriever.retrieve_documents(query)
+                elif hasattr(tool_retriever, 'invoke'):
+                    # LangChain retriever
+                    return tool_retriever.invoke(query)
+                else:
+                    raise ValueError(f"Unknown retriever type: {type(tool_retriever)}")
+            
             # Create the chain using LCEL
             chain = (
                 # Input: {"question": "user question"}
-                {"knowledge_context": itemgetter("question") | RunnableLambda(naive_retriever.retrieve_documents),
-                 "search_context": itemgetter("question") | RunnableLambda(tool_retriever.retrieve_documents),
+                {"knowledge_context": itemgetter("question") | RunnableLambda(knowledge_retrieve),
+                 "search_context": itemgetter("question") | RunnableLambda(search_retrieve),
                  "question": itemgetter("question")}
                 # Pass through contexts and format prompt
                 | RunnablePassthrough.assign(
@@ -322,18 +392,18 @@ class RAGChainBuilder:
     
     def create_production_rag_chain(
         self,
-        naive_retriever: NaiveRetriever,
-        semantic_retriever: SemanticRetriever,
-        tool_retriever: Optional[ToolBasedRetriever],
+        naive_retriever: Any,
+        semantic_retriever: Any,
+        tool_retriever: Optional[Any],
         use_hybrid: bool = True
     ):
         """
         Create production RAG chain with multiple retrieval methods.
         
         Args:
-            naive_retriever: Naive retriever instance
-            semantic_retriever: Semantic retriever instance
-            tool_retriever: Tool retriever instance
+            naive_retriever: Naive retriever instance (can be custom or LangChain retriever)
+            semantic_retriever: Semantic retriever instance (can be custom or LangChain retriever)
+            tool_retriever: Tool retriever instance (can be custom or LangChain retriever)
             use_hybrid: Whether to use hybrid approach
             
         Returns:
@@ -342,13 +412,25 @@ class RAGChainBuilder:
         try:
             logger.info("🔗 Creating production RAG chain")
             
+            # Create adapter functions that work with both custom retrievers and LangChain retrievers
+            def retrieve_with_adapter(retriever, query: str):
+                """Retrieve documents using appropriate method."""
+                if hasattr(retriever, 'retrieve_documents'):
+                    # Custom retriever (NaiveRetriever, SemanticRetriever, etc.)
+                    return retriever.retrieve_documents(query)
+                elif hasattr(retriever, 'invoke'):
+                    # LangChain retriever
+                    return retriever.invoke(query)
+                else:
+                    raise ValueError(f"Unknown retriever type: {type(retriever)}")
+            
             if use_hybrid and tool_retriever:
                 # Use hybrid approach combining all methods
                 chain = (
                     # Input: {"question": "user question"}
-                    {"naive_context": itemgetter("question") | RunnableLambda(naive_retriever.retrieve_documents),
-                     "semantic_context": itemgetter("question") | RunnableLambda(semantic_retriever.retrieve_documents),
-                     "search_context": itemgetter("question") | RunnableLambda(tool_retriever.retrieve_documents),
+                    {"naive_context": itemgetter("question") | RunnableLambda(lambda q: retrieve_with_adapter(naive_retriever, q)),
+                     "semantic_context": itemgetter("question") | RunnableLambda(lambda q: retrieve_with_adapter(semantic_retriever, q)),
+                     "search_context": itemgetter("question") | RunnableLambda(lambda q: retrieve_with_adapter(tool_retriever, q)),
                      "question": itemgetter("question")}
                     # Combine contexts
                     | RunnablePassthrough.assign(
@@ -366,7 +448,7 @@ class RAGChainBuilder:
                 # Use semantic retriever as primary with tool fallback
                 chain = (
                     # Input: {"question": "user question"}
-                    {"context": itemgetter("question") | RunnableLambda(semantic_retriever.retrieve_documents),
+                    {"context": itemgetter("question") | RunnableLambda(lambda q: retrieve_with_adapter(semantic_retriever, q)),
                      "question": itemgetter("question")}
                     # Pass through context and format prompt
                     | RunnablePassthrough.assign(context=itemgetter("context"))
@@ -458,11 +540,26 @@ class RAGChainBuilder:
         try:
             logger.info("🔗 Creating contextual compression RAG chain")
             
+            # Convert custom retriever to LangChain BaseRetriever if needed
+            langchain_retriever = base_retriever
+            if isinstance(base_retriever, NaiveRetriever):
+                # Extract the LangChain retriever from NaiveRetriever's vector_store
+                logger.info("🔄 Converting NaiveRetriever to LangChain BaseRetriever")
+                langchain_retriever = base_retriever.vector_store.as_retriever(
+                    search_kwargs={"k": base_retriever.k}
+                )
+            elif hasattr(base_retriever, 'vector_store') and hasattr(base_retriever.vector_store, 'as_retriever'):
+                # For other custom retrievers with vector_store
+                logger.info("🔄 Converting custom retriever to LangChain BaseRetriever")
+                langchain_retriever = base_retriever.vector_store.as_retriever(
+                    search_kwargs={"k": getattr(base_retriever, 'k', 5)}
+                )
+            
             # Create Cohere reranker
             compressor = CohereRerank(model="rerank-v3.5")
             compression_retriever = ContextualCompressionRetriever(
                 base_compressor=compressor, 
-                base_retriever=base_retriever
+                base_retriever=langchain_retriever
             )
             
             # Store retriever at class level
@@ -522,9 +619,24 @@ class RAGChainBuilder:
         try:
             logger.info("🔗 Creating multi-query RAG chain")
             
+            # Convert custom retriever to LangChain BaseRetriever if needed
+            langchain_retriever = base_retriever
+            if isinstance(base_retriever, NaiveRetriever):
+                # Extract the LangChain retriever from NaiveRetriever's vector_store
+                logger.info("🔄 Converting NaiveRetriever to LangChain BaseRetriever")
+                langchain_retriever = base_retriever.vector_store.as_retriever(
+                    search_kwargs={"k": base_retriever.k}
+                )
+            elif hasattr(base_retriever, 'vector_store') and hasattr(base_retriever.vector_store, 'as_retriever'):
+                # For other custom retrievers with vector_store
+                logger.info("🔄 Converting custom retriever to LangChain BaseRetriever")
+                langchain_retriever = base_retriever.vector_store.as_retriever(
+                    search_kwargs={"k": getattr(base_retriever, 'k', 5)}
+                )
+            
             # Create multi-query retriever
             multi_query_retriever = MultiQueryRetriever.from_llm(
-                retriever=base_retriever, 
+                retriever=langchain_retriever, 
                 llm=self.llm
             )
             
@@ -753,15 +865,21 @@ class RAGChainBuilder:
             logger.info(f"📚 Created {len(semantic_documents)} semantic chunks")
             
             # Create semantic vectorstore
-            from qdrant_client import QdrantClient
+            from qdrant_client import QdrantClient, models
             client = QdrantClient(location=":memory:")
-            
-            semantic_vectorstore = QdrantVectorStore.from_documents(
-                semantic_documents,
-                embeddings,
-                client=client,
-                collection_name="Synthetic_Usecase_Data_Semantic_Chunks"
+            client.create_collection(
+                collection_name="Synthetic_Usecase_Data_Semantic_Chunks",
+                vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE)
             )
+            
+            semantic_vectorstore = QdrantVectorStore(
+                collection_name="Synthetic_Usecase_Data_Semantic_Chunks",
+                embedding=embeddings,
+                client=client
+            )
+            
+            # Add documents to the vectorstore
+            semantic_vectorstore.add_documents(semantic_documents)
             
             # Create semantic retriever
             semantic_retriever = semantic_vectorstore.as_retriever(search_kwargs={"k": 10})
@@ -916,16 +1034,33 @@ def create_production_chains(
     chains["confidence"] = confidence_chain
     retrievers["confidence"] = None
     
-    # Add naive_rag chain if documents are provided
-    if documents:
-        try:
-            naive_chain, naive_retriever = builder.create_naive_rag_chain(documents, embeddings, k=config.retrieval.default_k)
-            chains["naive_rag"] = naive_chain
-            retrievers["naive_rag"] = naive_retriever
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to create naive chain: {e}")
-    else:
-        logger.warning("⚠️ No documents provided, skipping naive_rag chain")
+    # Create naive_rag chain using existing naive_retriever (reuses main vector store)
+    try:
+        naive_chain, naive_chain_retriever = builder.create_naive_rag_chain(
+            naive_retriever=naive_retriever,
+            k=config.retrieval.default_k
+        )
+        chains["naive_rag"] = naive_chain
+        retrievers["naive_rag"] = naive_chain_retriever
+        logger.info("✅ Created naive_rag chain using existing vector store")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to create naive chain with retriever: {e}")
+        # Fallback: try with documents if available
+        if documents:
+            try:
+                logger.info("🔄 Attempting fallback: creating naive chain with documents")
+                naive_chain, naive_chain_retriever = builder.create_naive_rag_chain(
+                    documents=documents,
+                    embeddings=embeddings,
+                    k=config.retrieval.default_k
+                )
+                chains["naive_rag"] = naive_chain
+                retrievers["naive_rag"] = naive_chain_retriever
+                logger.info("✅ Created naive_rag chain using documents (fallback)")
+            except Exception as e2:
+                logger.error(f"❌ Failed to create naive chain with documents: {e2}")
+        else:
+            logger.warning("⚠️ No documents available for naive chain fallback")
     
     # Add tool-based chains only if tool retriever is available
     if tool_retriever:

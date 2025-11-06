@@ -12,7 +12,8 @@ from pydantic import BaseModel, Field
 class QueryRequest(BaseModel):
     """Request model for RAG queries."""
     question: str = Field(..., description="The question to ask the RAG system")
-    method: str = Field(default="production", description="Retrieval method to use")
+    method: str = Field(default="production", description="Retrieval method to use (deprecated, use methods)")
+    methods: List[str] = Field(default=["production"], description="List of retrieval methods to use")
     include_confidence: bool = Field(default=True, description="Whether to include confidence scoring")
     max_results: Optional[int] = Field(default=None, description="Maximum number of results")
 

@@ -90,11 +90,23 @@ def create_all_retriever_chains(documents):
     retrievers = {}
     
     # Create Naive RAG chain
+    # Note: For evaluation, we create a separate vector store to isolate evaluation from production.
+    # If you want to reuse the main vector store, you can create a NaiveRetriever and pass it instead.
     logger.info("📊 Creating Naive RAG chain...")
     try:
-        # Use smaller k for faster retrieval in production
+        # Check if we can reuse main vector store (optional - uncomment to use)
+        # from src.core.vectorstore import VectorStoreManager
+        # from src.core.retrieval import create_naive_retriever
+        # vector_store_manager = VectorStoreManager()
+        # vector_store = vector_store_manager.initialize_vector_store(embeddings)
+        # naive_retriever = create_naive_retriever(vector_store, k=5)
+        # naive_chain, naive_ret = builder.create_naive_rag_chain(naive_retriever=naive_retriever, k=5)
+        
+        # For evaluation isolation, create separate vector store (current approach)
         naive_chain, naive_ret = builder.create_naive_rag_chain(
-            documents, embeddings, k=5  # Reduced from default for speed
+            documents=documents, 
+            embeddings=embeddings, 
+            k=5  # Reduced from default for speed
         )
         chains["naive_rag"] = naive_chain
         retrievers["naive_rag"] = naive_ret
@@ -117,10 +129,13 @@ def create_all_retriever_chains(documents):
         logger.error(traceback.format_exc())
     
     # Create Contextual Compression chain (requires a base retriever)
+    # Note: This method already handles NaiveRetriever and reuses its vector_store internally
     logger.info("📊 Creating Contextual Compression RAG chain...")
     try:
         # Use naive retriever as base
         if "naive_rag" in retrievers and retrievers["naive_rag"] is not None:
+            # If naive_ret is a LangChain retriever from a separate vector store, that's fine
+            # The compression chain will use that vector store (which is already set up)
             comp_chain, comp_ret = builder.create_contextual_compression_rag_chain(retrievers["naive_rag"])
             chains["contextual_compression_rag"] = comp_chain
             retrievers["contextual_compression_rag"] = comp_ret
@@ -131,10 +146,13 @@ def create_all_retriever_chains(documents):
         logger.warning(f"⚠️ Failed to create Contextual Compression chain: {e}")
     
     # Create Multi-Query chain (requires a base retriever)
+    # Note: This method already handles NaiveRetriever and reuses its vector_store internally
     logger.info("📊 Creating Multi-Query RAG chain...")
     try:
         # Use naive retriever as base
         if "naive_rag" in retrievers and retrievers["naive_rag"] is not None:
+            # If naive_ret is a LangChain retriever from a separate vector store, that's fine
+            # The multi-query chain will use that vector store (which is already set up)
             mq_chain, mq_ret = builder.create_multi_query_rag_chain(retrievers["naive_rag"])
             chains["multi_query_rag"] = mq_chain
             retrievers["multi_query_rag"] = mq_ret

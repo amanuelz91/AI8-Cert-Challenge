@@ -43,6 +43,8 @@ class MultiRetrievalState(BaseRAGState):
     naive_context: List[Document]
     semantic_context: List[Document]
     tool_context: List[Document]
+    parent_context: List[Document]
+    bm25_context: List[Document]
     combined_context: List[Document]
     retrieval_results: Dict[str, Any]
 

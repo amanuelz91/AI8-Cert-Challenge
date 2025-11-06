@@ -197,16 +197,76 @@ class SemanticRetriever(BaseRAGRetriever):
         try:
             logger.info(f"🧠 [Semantic] Retrieving documents with scores for: {query[:50]}...")
             
-            # Use similarity search with score
-            docs_with_scores = self.vector_store.similarity_search_with_score(
-                query, 
-                k=self.k
-            )
+            # Try direct Qdrant search first (same as retrieve_documents)
+            try:
+                # Get query embedding
+                query_embedding = self.embeddings.embed_query(query)
+                
+                # Search using direct Qdrant client with full payload
+                search_results = self.vector_store.client.search(
+                    collection_name=self.vector_store.collection_name,
+                    query_vector=query_embedding,
+                    limit=self.k,
+                    with_payload=True,
+                    with_vectors=False
+                )
+                
+                # Convert Qdrant results to Document objects
+                docs_with_scores = []
+                for result in search_results:
+                    # Extract content from payload (check both 'content' and 'page_content')
+                    content = result.payload.get('content', '') or result.payload.get('page_content', '')
+                    
+                    # Create Document object
+                    doc = Document(
+                        page_content=content,
+                        metadata={
+                            '_id': result.id,
+                            '_collection_name': self.vector_store.collection_name,
+                            **result.payload
+                        }
+                    )
+                    
+                    # Convert distance to similarity score
+                    distance = result.score
+                    similarity = 1 - distance
+                    docs_with_scores.append((doc, similarity))
+                
+                logger.info(f"🧠 [SEMANTIC RETRIEVAL] Direct Qdrant search returned {len(docs_with_scores)} documents")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ [SEMANTIC RETRIEVAL] Direct Qdrant search failed: {str(e)}")
+                logger.info(f"🧠 [SEMANTIC RETRIEVAL] Falling back to LangChain similarity_search_with_score")
+                
+                # Fallback to LangChain method
+                docs_with_scores_langchain = self.vector_store.similarity_search_with_score(
+                    query, 
+                    k=self.k
+                )
+                
+                # Process LangChain results: ensure page_content is populated
+                docs_with_scores = []
+                for doc, distance in docs_with_scores_langchain:
+                    # Fix: If page_content is empty but content exists in metadata, use it
+                    if not doc.page_content or not doc.page_content.strip():
+                        if doc.metadata and 'content' in doc.metadata:
+                            content = doc.metadata['content']
+                            if content and content.strip():
+                                doc.page_content = content
+                                logger.debug(f"🔧 [Semantic] Fixed empty page_content using metadata['content']")
+                        elif doc.metadata and 'page_content' in doc.metadata:
+                            content = doc.metadata['page_content']
+                            if content and content.strip():
+                                doc.page_content = content
+                                logger.debug(f"🔧 [Semantic] Fixed empty page_content using metadata['page_content']")
+                    
+                    # Convert distance to similarity
+                    similarity = 1 - distance
+                    docs_with_scores.append((doc, similarity))
             
-            # Convert distance to similarity and filter
+            # Filter by similarity threshold
             results = []
-            for doc, distance in docs_with_scores:
-                similarity = 1 - distance
+            for doc, similarity in docs_with_scores:
                 if similarity >= self.similarity_threshold:
                     # Add semantic metadata
                     if not hasattr(doc, 'metadata') or doc.metadata is None:
@@ -215,6 +275,7 @@ class SemanticRetriever(BaseRAGRetriever):
                     doc.metadata['relevance_score'] = similarity
                     doc.metadata['chunking_method'] = 'semantic'
                     doc.metadata['breakpoint_threshold'] = self.breakpoint_threshold_type
+                    
                     results.append((doc, similarity))
             
             logger.info(f"📚 [Semantic] Retrieved {len(results)} documents with scores")

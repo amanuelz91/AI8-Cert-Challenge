@@ -146,10 +146,54 @@ class ProductionRAGSystem:
                 logger.warning("⚠️ No search tool provided, tool-based retrieval disabled")
                 tool_retriever = None
             
+            # Create parent document retriever (optional)
+            # Reuse the main cloud Qdrant instance with a different collection for parent document child chunks
+            parent_document_retriever = None
+            try:
+                from src.core.retrieval import create_parent_document_retriever
+                logger.info("📄 Creating parent document retriever...")
+                logger.info("♻️ Reusing cloud Qdrant instance for parent document child chunks")
+                # Use processed documents (before chunking) for parent document retriever
+                # This allows hierarchical retrieval with parent documents
+                # Pass the main vector_store to reuse the cloud Qdrant instance
+                parent_document_retriever = create_parent_document_retriever(
+                    parent_documents=self.processed_documents,  # Use full documents as parents
+                    embeddings=self.embeddings,
+                    k=self.config.retrieval.default_k,
+                    child_chunk_size=750,
+                    child_chunk_overlap=100,
+                    vector_store=self.vector_store  # Reuse main cloud Qdrant instance
+                )
+                logger.info("✅ Parent document retriever created (using cloud Qdrant)")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to create parent document retriever: {str(e)}")
+                logger.warning("⚠️ Continuing without parent document retrieval")
+            
+            # Create BM25 retriever (optional)
+            bm25_retriever = None
+            try:
+                from src.core.retrieval import create_bm25_retriever
+                logger.info("🔤 Creating BM25 retriever...")
+                # Use chunked documents for BM25 (keyword-based search works best with chunks)
+                bm25_retriever = create_bm25_retriever(
+                    documents=self.chunked_documents,
+                    k=self.config.retrieval.default_k
+                )
+                logger.info("✅ BM25 retriever created")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to create BM25 retriever: {str(e)}")
+                logger.warning("⚠️ Continuing without BM25 retrieval")
+            
             logger.info("✅ Retrievers created for chains")
             
             # Initialize chains and workflows using the retrievers
-            self._initialize_chains_and_workflows(naive_retriever, semantic_retriever, tool_retriever)
+            self._initialize_chains_and_workflows(
+                naive_retriever, 
+                semantic_retriever, 
+                tool_retriever,
+                parent_document_retriever,
+                bm25_retriever
+            )
             
             logger.info("✅ All components initialized successfully")
             
@@ -214,7 +258,9 @@ class ProductionRAGSystem:
         self,
         naive_retriever,
         semantic_retriever,
-        tool_retriever
+        tool_retriever,
+        parent_document_retriever=None,
+        bm25_retriever=None
     ) -> None:
         """Initialize LCEL chains and LangGraph workflows."""
         try:
@@ -225,13 +271,19 @@ class ProductionRAGSystem:
             logger.info(f"  - naive_retriever: {type(naive_retriever)}")
             logger.info(f"  - semantic_retriever: {type(semantic_retriever)}")
             logger.info(f"  - tool_retriever: {type(tool_retriever)}")
+            if parent_document_retriever:
+                logger.info(f"  - parent_document_retriever: {type(parent_document_retriever)}")
+            if bm25_retriever:
+                logger.info(f"  - bm25_retriever: {type(bm25_retriever)}")
             logger.info(f"  - llm: {type(self.llm)}")
             
-            self.chains = create_production_chains(
+            # Create production chains - returns tuple (chains, retrievers)
+            self.chains, _ = create_production_chains(
                 naive_retriever,
                 semantic_retriever,
                 tool_retriever,
-                self.llm
+                self.llm,
+                documents=self.chunked_documents  # Pass documents for naive_rag chain
             )
             
             logger.info(f"✅ Chains created: {list(self.chains.keys())}")
@@ -245,7 +297,9 @@ class ProductionRAGSystem:
                 naive_retriever,
                 semantic_retriever,
                 tool_retriever,
-                self.llm
+                self.llm,
+                parent_document_retriever,
+                bm25_retriever
             )
             
             logger.info(f"✅ Workflows created: {list(self.workflows.keys())}")
@@ -296,9 +350,33 @@ class ProductionRAGSystem:
             logger.info(f"  🔄 Available workflows: {list(self.workflows.keys())}")
             logger.info(f"  🤖 LLM: {type(self.llm)}")
             
-            # Prepare input
-            input_data = {"question": question}
-            logger.info(f"📝 [RAG QUERY] Input data prepared: {input_data}")
+            # Prepare input - ensure all required state fields are initialized for workflows
+            if method == "production":
+                input_data = {
+                    "question": question,
+                    "response": "",
+                    "metadata": {},
+                    "naive_context": [],
+                    "semantic_context": [],
+                    "tool_context": [],
+                    "parent_context": [],
+                    "bm25_context": [],
+                    "combined_context": [],
+                    "retrieval_results": {},
+                    "knowledge_response": "",
+                    "search_response": "",
+                    "final_response": "",
+                    "source_attribution": {},
+                    "confidence_scores": {},
+                    "quality_metrics": {},
+                    "performance_metrics": {},
+                    "error_handling": None,
+                    "retrieval_method": []
+                }
+            else:
+                input_data = {"question": question}
+            
+            logger.info(f"📝 [RAG QUERY] Input data prepared: {list(input_data.keys())}")
             
             # Execute based on method
             logger.info(f"⚡ [RAG QUERY] Executing query using method: {method}")
@@ -334,6 +412,14 @@ class ProductionRAGSystem:
                 logger.info(f"🔗 [RAG QUERY] Invoking hybrid_rag chain...")
                 result = self.chains["hybrid_rag"].invoke(input_data)
                 logger.info(f"✅ [RAG QUERY] Hybrid chain execution completed")
+                
+            elif method == "bm25" and "bm25_rag" in self.chains:
+                logger.info(f"🔗 [RAG QUERY] Using BM25 chain")
+                logger.info(f"🔗 [RAG QUERY] Chain type: {type(self.chains['bm25_rag'])}")
+                logger.info(f"🔗 [RAG QUERY] Chain has invoke method: {hasattr(self.chains['bm25_rag'], 'invoke')}")
+                logger.info(f"🔗 [RAG QUERY] Invoking bm25_rag chain...")
+                result = self.chains["bm25_rag"].invoke(input_data)
+                logger.info(f"✅ [RAG QUERY] BM25 chain execution completed")
                 
             elif method == "production":
                 logger.info(f"🔄 [RAG QUERY] Using PRODUCTION workflow")
